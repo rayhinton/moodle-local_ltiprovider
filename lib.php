@@ -267,6 +267,8 @@ function local_ltiprovider_cron() {
 
                 $completion = new completion_info(get_course($tool->courseid));
 
+                $do_update_last_sync = false;
+
                 if ($users = $DB->get_records('local_ltiprovider_user', array('toolid' => $tool->id))) {
                     foreach ($users as $user) {
 
@@ -378,6 +380,7 @@ function local_ltiprovider_cron() {
 
                                 // TODO - Check for errors in $retval in a correct way (parsing xml)
                                 if (strpos(strtolower($response), 'success') !== false) {
+                                    $do_update_last_sync = true;
 
                                     $DB->set_field('local_ltiprovider_user', 'lastsync', $timenow, array('id' => $user->id));
                                     $DB->set_field('local_ltiprovider_user', 'lastgrade', intval($grade), array('id' => $user->id));
@@ -397,7 +400,9 @@ function local_ltiprovider_cron() {
                     }
                 }
                 mtrace(" Completed sync tool id $tool->id course id $tool->courseid users=$user_count sent=$send_count errors=$error_count");
-                $DB->set_field('local_ltiprovider', 'lastsync', $timenow, array('id' => $tool->id));
+                if ($do_update_last_sync) {
+                    $DB->set_field('local_ltiprovider', 'lastsync', $timenow, array('id' => $tool->id));
+                }
             }
         }
     }
