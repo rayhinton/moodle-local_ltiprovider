@@ -607,8 +607,8 @@ function local_ltiprovider_duplicate_module($cmid, $courseid, $newidnumber, $lti
 
 
     if (!plugin_supports('mod', $cm->modname, FEATURE_BACKUP_MOODLE2)) {
-        $url = course_get_url($course, $cm->sectionnum, array('sr' => $sectionreturn));
-        print_error('duplicatenosupport', 'error', $url, $a);
+        $url = course_get_url($course, $cm->sectionnum);
+        print_error('duplicatenosupport', 'error', $url);
     }
 
     // backup the activity
@@ -771,9 +771,10 @@ function local_ltiprovider_add_user_to_group($tool, $user) {
  * @return array with keys userphotos, consumers and response
  */
 function local_ltiprovider_membership_service($tool, $timenow, $userphotos, $consumers) {
-    global $DB;
+    global $DB, $CFG;
     mtrace('Starting sync of tool: ' . $tool->id);
     $response = "";
+    $update_last_sync_members = false;
     // We check for all the users, notice that users can access the same tool from different consumers.
     if ($users = $DB->get_records('local_ltiprovider_user', array('toolid' => $tool->id), 'lastaccess DESC')) {
 
@@ -808,7 +809,9 @@ function local_ltiprovider_membership_service($tool, $timenow, $userphotos, $con
             if ($response) {
                 $data = new SimpleXMLElement($response);
                 if(!empty($data->statusinfo)) {
+
                     if(strpos(strtolower($data->statusinfo->codemajor), 'success') !== false) {
+                        $update_last_sync_members = true;
                         $members = $data->memberships->member;
                         mtrace(count($members) . ' members received');
                         $currentusers = array();
@@ -929,7 +932,9 @@ function local_ltiprovider_membership_service($tool, $timenow, $userphotos, $con
                 mtrace('No response received from ' . $user->membershipsurl);
             }
         }
-        set_config('membershipslastsync-' . $tool->id, $timenow, 'local_ltiprovider');
+        if ($update_last_sync_members) {
+            set_config('membershipslastsync-' . $tool->id, $timenow, 'local_ltiprovider');
+        }
         mtrace('Finished sync of member using the memberships service');
     }
     return array('userphotos'=>$userphotos, 'consumers'=>$consumers, 'response'=>$response);
