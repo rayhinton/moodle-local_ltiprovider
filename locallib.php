@@ -831,23 +831,30 @@ function local_ltiprovider_membership_service($tool, $timenow, $userphotos, $con
 
                             if ($userobj) {
                                 $currentusers[] = $userobj->id;
-                                $userobj->firstname = clean_param($member->person_name_given, PARAM_TEXT);
-                                $userobj->lastname = clean_param($member->person_name_family, PARAM_TEXT);
-                                $userobj->email = clean_param($member->person_contact_email_primary, PARAM_EMAIL);
-                                $userobj->timemodified = time();
+                                $firstname = clean_param($member->person_name_given, PARAM_TEXT);
+                                $lastname = clean_param($member->person_name_family, PARAM_TEXT);
+                                $email = clean_param($member->person_contact_email_primary, PARAM_EMAIL);
+                                if ($firstname !== $userobj->firstname || $lastname !== $userobj->lastname
+                                || $email !== $userobj->email) {
 
-                                $DB->update_record('user', $userobj);
-                                $userphotos[$userobj->id] = $member->user_image;
+                                    $userobj->firstname = clean_param($member->person_name_given, PARAM_TEXT);
+                                    $userobj->lastname = clean_param($member->person_name_family, PARAM_TEXT);
+                                    $userobj->email = clean_param($member->person_contact_email_primary, PARAM_EMAIL);
+                                    $userobj->timemodified = time();
 
-                                // Trigger event.
-                                $event = \core\event\user_updated::create(
-                                    array(
-                                        'objectid' => $userobj->id,
-                                        'relateduserid' => $userobj->id,
-                                        'context' => context_user::instance($userobj->id)
-                                    )
-                                );
-                                $event->trigger();
+                                    $DB->update_record('user', $userobj);
+                                    $userphotos[$userobj->id] = $member->user_image;
+
+                                    // Trigger event.
+                                    $event = \core\event\user_updated::create(
+                                        array(
+                                            'objectid' => $userobj->id,
+                                            'relateduserid' => $userobj->id,
+                                            'context' => context_user::instance($userobj->id)
+                                        )
+                                    );
+                                    $event->trigger();
+                                }
 
                             } else {
                                 // New members.
