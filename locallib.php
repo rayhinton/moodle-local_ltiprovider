@@ -783,7 +783,7 @@ function local_ltiprovider_membership_service($tool, $timenow, $userphotos, $con
                 continue;
             }
 
-            $consumer = md5($user->membershipsurl . ':' . $user->membershipsid . ':' . $user->consumerkey . ':' . $user->consumersecret);
+            $consumer = md5($user->membershipsurl . ':' . $user->consumerkey . ':' . $user->consumersecret);
             if (in_array($consumer, $consumers)) {
                 // We had syncrhonized with this consumer yet.
                 continue;
