@@ -788,7 +788,6 @@ function local_ltiprovider_membership_service($tool, $timenow, $userphotos, $con
                 // We had syncrhonized with this consumer yet.
                 continue;
             }
-            $consumers[] = $consumer;
 
             $params = array(
                 'lti_message_type' => 'basic-lis-readmembershipsforcontext',
@@ -807,6 +806,8 @@ function local_ltiprovider_membership_service($tool, $timenow, $userphotos, $con
             }
 
             if ($response) {
+                $consumers[] = $consumer;
+
                 $data = new SimpleXMLElement($response);
                 if(!empty($data->statusinfo)) {
 
