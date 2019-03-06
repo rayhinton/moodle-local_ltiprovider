@@ -138,7 +138,7 @@ if ($context->valid) {
         $newcourse->shortname = local_ltiprovider_get_new_course_info('shortname', $context);
         $newcourse->idnumber  = local_ltiprovider_get_new_course_info('idnumber', $context);
 
-        //Gets the first visible category by sort order 
+        //Gets the first visible category by sort order
         $categories = $DB->get_records('course_categories', array('visible'=>1), 'sortorder', 'id', 0, 1);
         if (count($categories)==0){
             $categories = $DB->get_records('course_categories', null, '', 'id', 0, 1);
@@ -523,17 +523,18 @@ if ($context->valid) {
 
     $SESSION->ltiprovider = $tool;
 
-    complete_user_login($user);
+    if (!$USER || $USER->username!=$user->username) {
+        complete_user_login($user);
 
-    // Trigger login event.
-    $event = \core\event\user_loggedin::create(
-        array(
-          'userid' => $user->id,
-          'objectid' => $user->id,
-          'other' => array('username' => $user->username),
-        ));
-    $event->trigger();
-
+        // Trigger login event.
+        $event = \core\event\user_loggedin::create(
+            array(
+                'userid' => $user->id,
+                'objectid' => $user->id,
+                'other' => array('username' => $user->username),
+            ));
+        $event->trigger();
+    }
     // Moodle 2.2 and onwards.
     if (isset($CFG->allowframembedding) and !$CFG->allowframembedding) {
         echo '<html>
