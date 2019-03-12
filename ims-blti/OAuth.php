@@ -184,7 +184,6 @@ class OAuthRequest {
   // for debug purposes
   public $base_string;
   public static $version = '1.0';
-  public static $POST_INPUT = 'php://input';
 
   function __construct($http_method, $http_url, $parameters=NULL) {
     @$parameters or $parameters = array();
@@ -198,19 +197,17 @@ class OAuthRequest {
    * attempt to build up a request from what was passed to the server
    */
   public static function from_request($http_method=NULL, $http_url=NULL, $parameters=NULL) {
+
+
     $scheme = (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] != "on")
-              ? 'http'
-              : 'https';
-    $port = "";
-    if ( $_SERVER['SERVER_PORT'] != "80" && $_SERVER['SERVER_PORT'] != "443" &&
-        strpos(':', $_SERVER['HTTP_HOST']) < 0 ) {
-      $port =  ':' . $_SERVER['SERVER_PORT'] ;
-    }
-    @$http_url or $http_url = $scheme .
-                              '://' . $_SERVER['HTTP_HOST'] .
-                              $port .
-                              $_SERVER['REQUEST_URI'];
-    @$http_method or $http_method = $_SERVER['REQUEST_METHOD'];
+        ? 'http'
+        : 'https';
+    $http_url = ($http_url) ? $http_url : $scheme .
+        '://' . $_SERVER['SERVER_NAME'] .
+        ':' .
+        $_SERVER['SERVER_PORT'] .
+        $_SERVER['REQUEST_URI'];
+    $http_method = ($http_method) ? $http_method : $_SERVER['REQUEST_METHOD'];
 
     // We weren't handed any parameters, so let's find the ones relevant to
     // this request.
@@ -221,31 +218,23 @@ class OAuthRequest {
       $request_headers = OAuthUtil::get_headers();
 
       // Parse the query-string to find GET parameters
-      $parameters = OAuthUtil::parse_parameters($_SERVER['QUERY_STRING']);
-
-      $ourpost = $_POST;
-      // Deal with magic_quotes
-      // http://www.php.net/manual/en/security.magicquotes.disabling.php
-      if ( get_magic_quotes_gpc() ) {
-         $outpost = array();
-         foreach ($_POST as $k => $v) {
-            $v = stripslashes($v);
-            $ourpost[$k] = $v;
-         }
+      if (isset($_SERVER['QUERY_STRING'])) {
+        $parameters = OAuthUtil::parse_parameters($_SERVER['QUERY_STRING']);
+      } else {
+        $parameters = array();
       }
-     // Add POST Parameters if they exist
-      $parameters = array_merge($parameters, $ourpost);
 
-      // We have a Authorization-header with OAuth data. Parse the header
-      // and add those overriding any duplicates from GET or POST
-      if (@substr($request_headers['Authorization'], 0, 6) == "OAuth ") {
-        $header_parameters = OAuthUtil::split_header(
-          $request_headers['Authorization']
-        );
+      // We have a Authorization-header with OAuth data. Parse the header and add those.
+      if (isset($request_headers['Authorization']) && substr($request_headers['Authorization'], 0, 6) == 'OAuth ') {
+        $header_parameters = OAuthUtil::split_header($request_headers['Authorization']);
         $parameters = array_merge($parameters, $header_parameters);
       }
 
+      // If there are parameters in $_POST, these are likely what will be used. Therefore, they should be considered
+      // the final value in the case of any duplicates from sources parsed above.
+      $parameters = array_merge($parameters, $_POST);
     }
+
 
     return new OAuthRequest($http_method, $http_url, $parameters);
   }
