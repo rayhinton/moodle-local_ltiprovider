@@ -353,87 +353,93 @@ if ($context->valid) {
             }
             // Detect it we must create the resource.
             if (!$cm) {
-                $resource_link_title        = $context->info['resource_link_title'];
-                $resource_link_description  = (isset($context->info['resource_link_description'])) ? $context->info['resource_link_description'] : false;
-                $resource_link_type         = (isset($context->info['custom_resource_link_type'])) ? $context->info['custom_resource_link_type'] : false;
-                if (!$resource_link_title) {
-                    $resource_link_title  = $context->info['custom_resource_link_title'];
-                }
-                if (!$resource_link_description && isset($context->info['custom_resource_link_description'])) {
-                    $resource_link_description  = $context->info['custom_resource_link_description'];
-                }
+	            // Duplicate an existing resource on SSO.
+	            $custom_resource_link_copy_id = ( ! empty( $context->info['custom_resource_link_copy_id'] ) ) ? $context->info['custom_resource_link_copy_id'] : false;
+	            if ( $custom_resource_link_copy_id ) {
+		            if ( ! $cm = $DB->get_record( 'course_modules',
+			            array( 'idnumber' => $custom_resource_link_copy_id ), '*', IGNORE_MULTIPLE ) ) {
+			            print_error( 'invalidresourcecopyid', 'local_ltiprovider' );
+		            }
+		            $newcmid = local_ltiprovider_duplicate_module( $cm->id, $courseid, $resource_link_id, $context );
+		            if ( $cm = get_coursemodule_from_id( false, $newcmid ) ) {
+			            $urltogo = new moodle_url( '/mod/' . $cm->modname . '/view.php', array( 'id' => $cm->id ) );
+		            }
+	            } else {
 
-                // Minimun for creating a module, title and type.
-                if ($resource_link_title and $resource_link_type) {
+		            $resource_link_title       = $context->info['resource_link_title'];
+		            $resource_link_description = ( isset( $context->info['resource_link_description'] ) ) ? $context->info['resource_link_description'] : false;
+		            $resource_link_type        = ( isset( $context->info['custom_resource_link_type'] ) ) ? $context->info['custom_resource_link_type'] : false;
+		            if ( ! $resource_link_title ) {
+			            $resource_link_title = $context->info['custom_resource_link_title'];
+		            }
+		            if ( ! $resource_link_description && isset( $context->info['custom_resource_link_description'] ) ) {
+			            $resource_link_description = $context->info['custom_resource_link_description'];
+		            }
 
-                    // Check if the remote user can create modules, checking the remote role.
-                    $rolesallowedcreateresources = get_config('local_ltiprovider', 'rolesallowedcreateresources');
-                    if ($rolesallowedcreateresources) {
-                        $rolesallowedcreateresources = explode(',', strtolower($rolesallowedcreateresources));
-                        $roles = explode(',', strtolower($context->info['roles']));
-                        $cancreate = false;
+		            // Minimun for creating a module, title and type.
+		            if ( $resource_link_title and $resource_link_type ) {
 
-                        foreach ($roles as $rol) {
-                            if (in_array($rol, $rolesallowedcreateresources)) {
-                                $cancreate = true;
-                                break;
-                            }
-                        }
+			            // Check if the remote user can create modules, checking the remote role.
+			            $rolesallowedcreateresources = get_config( 'local_ltiprovider', 'rolesallowedcreateresources' );
+			            if ( $rolesallowedcreateresources ) {
+				            $rolesallowedcreateresources = explode( ',', strtolower( $rolesallowedcreateresources ) );
+				            $roles                       = explode( ',', strtolower( $context->info['roles'] ) );
+				            $cancreate                   = false;
 
-                        if ($cancreate) {
-                            require_once($CFG->dirroot . '/course/lib.php');
-                            $moduleinfo = new stdClass();
+				            foreach ( $roles as $rol ) {
+					            if ( in_array( $rol, $rolesallowedcreateresources ) ) {
+						            $cancreate = true;
+						            break;
+					            }
+				            }
 
-                            // Always mandatory generic values to any module
-                            // TODO, check for valid types.
-                            $moduleinfo->modulename = $resource_link_type;
-                            $moduleinfo->section = 1;
-                            $moduleinfo->course = $courseid;
-                            $moduleinfo->visible = true;
-                            $moduleinfo->cmidnumber = $resource_link_id;
+				            if ( $cancreate ) {
+					            require_once( $CFG->dirroot . '/course/lib.php' );
+					            $moduleinfo = new stdClass();
 
-                            // Sometimes optional generic values for some modules
-                            $moduleinfo->name= $resource_link_title;
+					            // Always mandatory generic values to any module
+					            // TODO, check for valid types.
+					            $moduleinfo->modulename = $resource_link_type;
+					            $moduleinfo->section    = 1;
+					            $moduleinfo->course     = $courseid;
+					            $moduleinfo->visible    = true;
+					            $moduleinfo->cmidnumber = $resource_link_id;
 
-                            // Optional intro editor (depends of module)
-                            if ($resource_link_description) {
-                                $draftid_editor = 0;
-                                $USER = $user;
-                                file_prepare_draft_area($draftid_editor, null, null, null, null);
-                                $moduleinfo->introeditor = array('text'=> $resource_link_description, 'format'=>FORMAT_HTML, 'itemid'=>$draftid_editor);
-                            }
+					            // Sometimes optional generic values for some modules
+					            $moduleinfo->name = $resource_link_title;
 
-                            // Add extra module info.
-                            $modinfofile = $CFG->dirroot . '/local/ltiprovider/modinfo/' . $moduleinfo->modulename . '.php';
-                            if (file_exists($modinfofile)) {
-                                require_once($modinfofile);
-                                foreach ($extramodinfo as $key => $val) {
-                                    $moduleinfo->{$key} = $val;
-                                }
-                            }
+					            // Optional intro editor (depends of module)
+					            if ( $resource_link_description ) {
+						            $draftid_editor = 0;
+						            $USER           = $user;
+						            file_prepare_draft_area( $draftid_editor, null, null, null, null );
+						            $moduleinfo->introeditor = array( 'text'   => $resource_link_description,
+						                                              'format' => FORMAT_HTML,
+						                                              'itemid' => $draftid_editor
+						            );
+					            }
 
-                            $modinfo = create_module($moduleinfo);
+					            // Add extra module info.
+					            $modinfofile = $CFG->dirroot . '/local/ltiprovider/modinfo/' . $moduleinfo->modulename . '.php';
+					            if ( file_exists( $modinfofile ) ) {
+						            require_once( $modinfofile );
+						            foreach ( $extramodinfo as $key => $val ) {
+							            $moduleinfo->{$key} = $val;
+						            }
+					            }
 
-                            if ($modinfo) {
-                                $urltogo = new moodle_url('/course/modedit.php', array('update' => $modinfo->coursemodule));
-                            }
-                        } else {
-                            print_error('rolecannotcreateresources', 'local_ltiprovider');
-                        }
-                    }
-                }
-            }
-        }
+					            $modinfo = create_module( $moduleinfo );
 
-        // Duplicate an existing resource on SSO.
-        $custom_resource_link_copy_id = (!empty($context->info['custom_resource_link_copy_id'])) ? $context->info['custom_resource_link_copy_id'] : false;
-        if ($custom_resource_link_copy_id) {
-            if (!$cm = $DB->get_record('course_modules', array('idnumber' => $custom_resource_link_copy_id), '*', IGNORE_MULTIPLE)) {
-                print_error('invalidresourcecopyid', 'local_ltiprovider');
-            }
-            $newcmid = local_ltiprovider_duplicate_module($cm->id, $courseid, $resource_link_id, $context);
-            if ($cm = get_coursemodule_from_id(false, $newcmid)) {
-                $urltogo = new moodle_url('/mod/' .$cm->modname. '/view.php', array('id' => $cm->id));
+					            if ( $modinfo ) {
+						            $urltogo = new moodle_url( '/course/modedit.php',
+							            array( 'update' => $modinfo->coursemodule ) );
+					            }
+				            } else {
+					            print_error( 'rolecannotcreateresources', 'local_ltiprovider' );
+				            }
+			            }
+		            }
+	            }
             }
         }
 
