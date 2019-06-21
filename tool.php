@@ -331,7 +331,16 @@ if ($context->valid) {
         print_error("invalidcontext");
     }
 
-    if ($moodlecontext->contextlevel == CONTEXT_COURSE) {
+
+	// Enrol the user in the course
+	$isinstructor = $context->isInstructor();
+	local_ltiprovider_enrol_user($tool, $user, $isinstructor);
+	// Check if we have to add the user to a group, and if so, add it.
+	local_ltiprovider_add_user_to_group($tool, $user);
+
+
+
+	if ($moodlecontext->contextlevel == CONTEXT_COURSE) {
         $courseid = $moodlecontext->instanceid;
         $urltogo = $CFG->wwwroot.'/course/view.php?id='.$courseid;
         // Check if we have to redirect to a specific module in the course.
@@ -438,13 +447,6 @@ if ($context->valid) {
     }
 
     $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
-
-    // Enrol the user in the course
-    $isinstructor = $context->isInstructor();
-    local_ltiprovider_enrol_user($tool, $user, $isinstructor);
-
-    // Check if we have to add the user to a group, and if so, add it.
-    local_ltiprovider_add_user_to_group($tool, $user);
 
     if ($moodlecontext->contextlevel == CONTEXT_MODULE) {
         $role = $isinstructor ? 'instructor' : 'learner';
