@@ -655,14 +655,23 @@ function local_ltiprovider_duplicate_module($cmid, $courseid, $newidnumber, $lti
 
     $rc->destroy();
 
-    if ($module = $DB->get_record('course_modules', array('id' => $newcmid))) {
-        $module->idnumber = $newidnumber;
-        $DB->update_record('course_modules', $module);
-    }
+
+	if(! $DB->get_record('course_modules', array('idnumber' => $newidnumber))){
+		if ($module = $DB->get_record('course_modules', array('id' => $newcmid))) {
+			$module->idnumber = $newidnumber;
+			$DB->update_record('course_modules', $module);
+		}
+	} else {
+		if (empty($CFG->keeptempdirectoriesonbackup)) {
+			fulldelete($backupbasepath);
+		}
+		return $newcmid;
+	}
+
 
     $newtoolid = 0;
+	$newcmcontext = context_module::instance($newcmid);
     if ($tools = $DB->get_records('local_ltiprovider', array('contextid' => $cmcontext->id))) {
-        $newcmcontext = context_module::instance($newcmid);
         foreach ($tools as $tool) {
             $tool->courseid = $course->id;
             $tool->contextid = $newcmcontext->id;
