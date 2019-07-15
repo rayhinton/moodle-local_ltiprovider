@@ -283,6 +283,9 @@ function local_ltiprovider_get_new_course_info($field, $context) {
         case '5':
             $info = $context->info['oauth_consumer_key'] . ':' . $context->info['context_label'];
             break;
+        case '6':
+        	$info = local_ltiprovider_get_custom_new_course_info($field, $context);
+            break;
     }
 
     // Special case.
@@ -304,6 +307,47 @@ function local_ltiprovider_get_new_course_info($field, $context) {
     }
 
     return $info;
+}
+
+/**
+ * Generate a custom string to LTI key field (shortname, fullname or idnumber)
+ * @param $field
+ * @param $context
+ *
+ * @return string
+ * @throws dml_exception
+ * @throws moodle_exception
+ */
+function local_ltiprovider_get_custom_new_course_info($field, $context) {
+	$value = '';
+	$customformat = trim(get_config('local_ltiprovider', $field . "formatcustom"));
+	if ($customformat) {
+		$separators  = array(':', ' ');
+		foreach ($separators as $separator) {var_dump($separator);
+			$customformatarray = explode($separator, $customformat);
+			foreach ($customformatarray as $item) {
+				$value = local_ltiprovider_get_custom_new_course_info_add_param($value, $item, $context, $separator);
+			}
+		}
+	}
+
+	if (empty($value)) {
+		$error = new stdClass();
+		$error->field = $field.'formatcustom';
+		print_error(get_string('cantgeneratecustomltikey', 'local_ltiprovider', $error));
+	}
+
+	return $value;
+
+}
+
+function local_ltiprovider_get_custom_new_course_info_add_param($value, $item, $context, $separator) {
+	$item = trim($item);
+	if (!empty($item) && !empty($context->info[$item])) {
+		$value .= (empty($value)?'':$separator).$context->info[$item];
+	}
+
+	return $value;
 }
 
 /**

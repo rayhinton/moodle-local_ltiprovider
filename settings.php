@@ -51,16 +51,25 @@ if ($hassiteconfig) { // needs this condition or there is error on login page
     $settings->add(new admin_setting_configselect('local_ltiprovider/defaultauthmethod', get_string('defaultauthmethod',
         'local_ltiprovider'), get_string('defaultauthmethodhelp', 'local_ltiprovider'), 'manual', $authmethods));
 
-    $options = array('context_id', 'context_title' , 'context_label', 'consumer_key : context_id', 'consumer_key : context_title' , 'consumer_key : context_label');
+    $options = array('context_id', 'context_title' , 'context_label', 'consumer_key : context_id', 'consumer_key : context_title' , 'consumer_key : context_label', 'custom');
 
     $settings->add(new admin_setting_configselect('local_ltiprovider/fullnameformat', get_string('fullnameformat',
         'local_ltiprovider'), get_string('genericformathelp', 'local_ltiprovider'), 1, $options));
 
-    $settings->add(new admin_setting_configselect('local_ltiprovider/shortnameformat', get_string('shortnameformat',
+	$settings->add( new admin_setting_configtext('local_ltiprovider/fullnameformatcustom',
+		get_string('fullnameformatcustom', 'local_ltiprovider'), get_string('fullnameformatcustomdesc', 'local_ltiprovider'), '', PARAM_RAW_TRIMMED) );
+
+	$settings->add(new admin_setting_configselect('local_ltiprovider/shortnameformat', get_string('shortnameformat',
         'local_ltiprovider'), get_string('genericformathelp', 'local_ltiprovider'), 2, $options));
 
-    $settings->add(new admin_setting_configselect('local_ltiprovider/idnumberformat', get_string('idnumberformat',
+	$settings->add( new admin_setting_configtext('local_ltiprovider/shortnameformatcustom',
+		get_string('shortnameformatcustom', 'local_ltiprovider'), get_string('shortnameformatcustomdesc', 'local_ltiprovider'), '', PARAM_RAW_TRIMMED) );
+
+	$settings->add(new admin_setting_configselect('local_ltiprovider/idnumberformat', get_string('idnumberformat',
         'local_ltiprovider'), get_string('genericformathelp', 'local_ltiprovider'), 0, $options));
+
+	$settings->add( new admin_setting_configtext('local_ltiprovider/idnumberformatcustom',
+		get_string('idnumberformatcustom', 'local_ltiprovider'), get_string('idnumberformatcustomdesc', 'local_ltiprovider'), '', PARAM_RAW_TRIMMED) );
 
     $settings->add(new admin_setting_configcheckbox('local_ltiprovider/duplicatecourseswithoutusers', get_string('duplicatecourseswithoutusers', 'local_ltiprovider'),
                        get_string('duplicatecourseswithoutusershelp', 'local_ltiprovider'), 0));
