@@ -26,6 +26,11 @@
 $string['pluginname'] = 'LTI Provider';
 $string['providetool'] = 'Provide a tool for an external system';
 
+$string['task_clean_deleted_courses'] = 'Clean LTI from deleted courses';
+$string['task_grades_sync'] = 'Grades sync';
+$string['task_course_restore'] = 'Automatic course restore';
+$string['task_membership_service'] = 'Membership service';
+
 $string['remotesystem'] = 'Remote system';
 $string['userdefaultvalues'] = 'User default values';
 $string['remoteencoding'] = 'Remote system encoding';
