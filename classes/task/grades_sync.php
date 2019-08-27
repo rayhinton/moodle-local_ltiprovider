@@ -1,6 +1,8 @@
 <?php
 namespace local_ltiprovider\task;
 
+use moodle\local\ltiprovider as ltiprovider;
+
 class grades_sync extends \core\task\scheduled_task {      
     public function get_name() {
 		return get_string('task_grades_sync', 'local_ltiprovider');
