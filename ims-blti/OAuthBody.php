@@ -121,13 +121,11 @@ function sendOAuthParamsPOST($method, $endpoint, $oauth_consumer_key, $oauth_con
     $LastOAuthBodyBaseString = $acc_req->get_signature_base_string();
     // echo($LastOAuthBodyBaseString."\m");
 
-    $header = $acc_req->to_header();
-    $header = $header . "\r\nContent-type: " . $content_type . "\r\n";
+    $body = $acc_req->to_postdata();
 
     $params = array('http' => array(
         'method' => 'POST',
-        'content' => $body,
-    'header' => $header
+        'content' => $body
         ));
     $ctx = stream_context_create($params);
     $fp = @fopen($endpoint, 'rb', false, $ctx);
