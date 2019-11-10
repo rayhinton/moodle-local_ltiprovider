@@ -24,224 +24,103 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once(dirname(__FILE__) . '/../../../config.php');
+require_once( dirname( __FILE__ ) . '/../../../config.php' );
 
-require_once($CFG->dirroot . "/local/ltiprovider/lib.php");
-require_once($CFG->dirroot . "/local/ltiprovider/locallib.php");
-require_once($CFG->dirroot . "/local/ltiprovider/ims-blti/OAuth.php");
-require_once($CFG->dirroot . "/local/ltiprovider/ims-blti/OAuthBody.php");
-require_once($CFG->libdir . "/gradelib.php");
-require_once($CFG->dirroot . "/grade/querylib.php");
+require_once( $CFG->dirroot . "/local/ltiprovider/lib.php" );
+require_once( $CFG->dirroot . "/local/ltiprovider/locallib.php" );
+require_once( $CFG->dirroot . "/local/ltiprovider/ims-blti/OAuth.php" );
+require_once( $CFG->dirroot . "/local/ltiprovider/ims-blti/OAuthBody.php" );
+require_once( $CFG->libdir . "/gradelib.php" );
+require_once( $CFG->dirroot . "/grade/querylib.php" );
 
-use moodle\local\ltiprovider as ltiprovider;
+ini_set( "display_erros", 1 );
+error_reporting( E_ALL );
 
-ini_set("display_erros", 1);
-error_reporting(E_ALL);
+$courseid         = optional_param( 'courseid', 0, PARAM_INT );
+$toolid           = optional_param( 'toolid', 0, PARAM_INT );
+$userid           = optional_param( 'userid', 0, PARAM_INT );
+$omitcompletion   = optional_param( 'omitcompletion', 0, PARAM_BOOL );
+$printresponse    = optional_param( 'printresponse', 0, PARAM_BOOL );
+$sesskey          = optional_param( 'sesskey', null, PARAM_RAW );
+$user_force_grade = optional_param( 'user_force_grade', null, PARAM_RAW );
+$selected_users   = optional_param( 'selected_users', 0, PARAM_BOOL );
 
-$courseid = optional_param('courseid', 0, PARAM_INT);
-$toolid = optional_param('toolid', 0, PARAM_INT);
-$userid = optional_param('userid', 0, PARAM_INT);
-$omitcompletion = optional_param('omitcompletion', 0, PARAM_BOOL);
-$printresponse = optional_param('printresponse', 0, PARAM_BOOL);
-$sesskey = optional_param('sesskey', null, PARAM_RAW);
-$user_force_grade = optional_param('user_force_grade', null, PARAM_RAW);
-$selected_users = optional_param('selected_users', 0, PARAM_BOOL);
-
-if (!empty($sesskey)) {
-    require_sesskey();
+if ( ! empty( $sesskey ) ) {
+	require_sesskey();
 }
 
-if (empty($toolid)) {
-    require_login();
-    require_capability('moodle/site:config', context_system::instance());
+if ( empty( $toolid ) ) {
+	require_login();
+	require_capability( 'moodle/site:config', context_system::instance() );
 } else {
-    $tool = $DB->get_record('local_ltiprovider', array('id' => $toolid), '*', MUST_EXIST);
-    $course = $DB->get_record('course', array('id' => $tool->courseid), '*', MUST_EXIST);
-    $coursecontext = context_course::instance($course->id);
-    require_login($course);
-    require_capability('local/ltiprovider:manage', $coursecontext);
+	$tool          = $DB->get_record( 'local_ltiprovider', array( 'id' => $toolid ), '*', MUST_EXIST );
+	$course        = $DB->get_record( 'course', array( 'id' => $tool->courseid ), '*', MUST_EXIST );
+	$coursecontext = context_course::instance( $course->id );
+	require_login( $course );
+	require_capability( 'local/ltiprovider:manage', $coursecontext );
 }
 
 $log = array();
 
-if ($selected_users && strlen($user_force_grade)==0) {
-    $log[] = s(" Error, there are not selected users");
+if ( $selected_users && strlen( $user_force_grade ) == 0 ) {
+	$log[] = s( " Error, there are not selected users" );
 } else {
 
-    $select = 'disabled = ? AND sendgrades = ?';
-    $params_select = array(0, 1);
-    if (!empty($courseid)) {
-        $select .= ' AND courseid=?';
-        array_push($params_select, $courseid);
-    }
-    if (!empty($toolid)) {
-        $select .= ' AND id=?';
-        array_push($params_select, $toolid);
-    }
-    if ($tools = $DB->get_records_select('local_ltiprovider', $select, $params_select)) {
-        foreach ($tools as $tool) {
+	$select        = 'disabled = ? AND sendgrades = ?';
+	$params_select = array( 0, 1 );
+	if ( ! empty( $courseid ) ) {
+		$select .= ' AND courseid=?';
+		array_push( $params_select, $courseid );
+	}
+	if ( ! empty( $toolid ) ) {
+		$select .= ' AND id=?';
+		array_push( $params_select, $toolid );
+	}
+	if ( $tools = $DB->get_records_select( 'local_ltiprovider', $select, $params_select ) ) {
+		foreach ( $tools as $tool ) {
 
-            $log[] = s(" Starting sync tool for grades id $tool->id course id $tool->courseid");
+			$log[] = s( " Starting sync tool for grades id $tool->id course id $tool->courseid" );
 
-            if ($omitcompletion) {
-                $tool->requirecompletion = 0;
-            }
+			if ( $omitcompletion ) {
+				$tool->requirecompletion = 0;
+			}
 
-            if ($tool->requirecompletion) {
-                $log[] = s("  Grades require activity or course completion");
-            }
-            $user_count = 0;
-            $send_count = 0;
-            $error_count = 0;
+			if ( $tool->requirecompletion ) {
+				$log[] = s( "  Grades require activity or course completion" );
+			}
+			$user_count  = 0;
+			$send_count  = 0;
+			$error_count = 0;
 
-            $completion = new completion_info(get_course($tool->courseid));
+			$select_user = 'toolid = :toolid';
+			$params_user = array( 'toolid' => $tool->id );
+			if ( ! empty( $userid ) ) {
+				$select_user .= ' AND userid = :userid';
+				$params_user += array( 'userid' => $userid );
+			} elseif ( $selected_users ) {
+				list( $sql_in, $params_in ) = $DB->get_in_or_equal( explode( ",", $user_force_grade ),
+					SQL_PARAMS_NAMED );
+				$select_user .= ' AND userid ' . $sql_in;
+				$params_user += $params_in;
+			}
 
-            $select_user = 'toolid = :toolid';
-            $params_user = array('toolid'=>$tool->id);
-            if (!empty($userid)) {
-                $select_user .= ' AND userid = :userid';
-                $params_user += array('userid' => $userid);
-            } elseif ($selected_users) {
-                list($sql_in, $params_in) = $DB->get_in_or_equal(explode(",", $user_force_grade), SQL_PARAMS_NAMED);
-                $select_user .= ' AND userid '.$sql_in;
-                $params_user += $params_in;
-            }
+			$users = $DB->get_records_select( 'local_ltiprovider_user', $select_user, $params_user );
+			$log  = array_merge( $log, local_ltiprovier_do_grades_sync( $tool, $users, time() ) );
 
-            if ($users = $DB->get_records_select('local_ltiprovider_user', $select_user, $params_user)) {
-                foreach ($users as $user) {
-
-                    $data = array(
-                        'tool' => $tool,
-                        'user' => $user,
-                    );
-
-                    local_ltiprovider_call_hook('grades', (object)$data);
-
-                    $log[] = s("   Sending grades for user $user->userid");
-                    $user_count = $user_count + 1;
-                    // This can happen is the sync process has an unexpected error
-                    if (strlen($user->serviceurl) < 1) {
-                        $log[] = s("   Empty serviceurl");
-                        continue;
-                    }
-                    if (strlen($user->sourceid) < 1) {
-                        $log[] = s("   Empty sourceid");
-                        continue;
-                    }
-
-                    $grade = false;
-                    if ($context = $DB->get_record('context', array('id' => $tool->contextid))) {
-                        if ($context->contextlevel == CONTEXT_COURSE) {
-
-                            if ($tool->requirecompletion and !$completion->is_course_complete($user->userid)) {
-                                $log[] = s("   Skipping user $user->userid since he didn't complete the course");
-                                continue;
-                            }
-
-                            if ($grade = grade_get_course_grade($user->userid, $tool->courseid)) {
-                                $grademax = floatval($grade->item->grademax);
-                                $grade = $grade->grade;
-                            }
-                        } else {
-                            if ($context->contextlevel == CONTEXT_MODULE) {
-                                $cm = get_coursemodule_from_id(false, $context->instanceid, 0, false, MUST_EXIST);
-
-                                if ($tool->requirecompletion) {
-                                    $data = $completion->get_data($cm, false, $user->userid);
-                                    if ($data->completionstate != COMPLETION_COMPLETE_PASS and $data->completionstate != COMPLETION_COMPLETE) {
-                                        $log[] = s("   Skipping user $user->userid since he didn't complete the activity");
-                                        continue;
-                                    }
-                                }
-
-                                $grades = grade_get_grades($cm->course, 'mod', $cm->modname, $cm->instance,
-                                    $user->userid);
-                                if (empty($grades->items[0]->grades)) {
-                                    $grade = false;
-                                } else {
-                                    $grade = reset($grades->items[0]->grades);
-                                    if (!empty($grade->item)) {
-                                        $grademax = floatval($grade->item->grademax);
-                                    } else {
-                                        $grademax = floatval($grades->items[0]->grademax);
-                                    }
-                                    $grade = $grade->grade;
-                                }
-                            }
-                        }
-
-                        if ($grade === false || $grade === null || strlen($grade) < 1) {
-                            $log[] = s("   Invalid grade $grade");
-                            continue;
-                        }
-
-                        // No need to be dividing by zero
-                        if ($grademax == 0.0) {
-                            $grademax = 100.0;
-                        }
-
-                        // TODO: Make lastgrade should be float or string - but it is integer so we truncate
-                        // TODO: Then remove those intval() calls
-
-                        // Don't double send
-                        if (intval($grade) == $user->lastgrade) {
-                            $log[] = s("   Last grade send is equal to current grade");
-                        }
-
-                        // We sync with the external system only when the new grade differs with the previous one
-                        // TODO - Global setting for check this
-                        if ($grade >= 0 and $grade <= $grademax) {
-                            $float_grade = $grade / $grademax;
-                            $body = local_ltiprovider_create_service_body($user->sourceid, $float_grade);
-
-                            try {
-                                $response = ltiprovider\sendOAuthBodyPOST('POST', $user->serviceurl, $user->consumerkey,
-                                    $user->consumersecret, 'application/xml', $body);
-                            } catch (Exception $e) {
-                                $log[] = s(" Exception" . $e->getMessage());
-                                $error_count = $error_count + 1;
-                                $log[] = s("Invalid $response " . $response);
-                                continue;
-                            }
-
-                            if ($printresponse) {
-                                $log[] = s("   Remote system response: \n    $response\n");
-                            }
-
-                            // TODO - Check for errors in $retval in a correct way (parsing xml)
-                            if (strpos(strtolower($response), 'success') !== false) {
-                                $DB->set_field('local_ltiprovider_user', 'lastsync', time(), array('id' => $user->id));
-                                $DB->set_field('local_ltiprovider_user', 'lastgrade', intval($grade),
-                                    array('id' => $user->id));
-                                $log[] = s(" User grade sent to remote system. userid: $user->userid grade: $float_grade");
-                                $send_count = $send_count + 1;
-                            } else {
-                                $log[] = s(" User grade send failed. userid: $user->userid grade: $float_grade: " . $response);
-                                $error_count = $error_count + 1;
-                            }
-                        } else {
-                            $log[] = s(" User grade for user $user->userid out of range: grade = " . $grade);
-                            $error_count = $error_count + 1;
-                        }
-                    } else {
-                        $log[] = s(" Invalid context: contextid = " . $tool->contextid);
-                    }
-                }
-            }
-            $log[] = s(" Completed sync tool id $tool->id course id $tool->courseid users=$user_count sent=$send_count errors=$error_count");
-        }
-    }
+			$log[] = s( " Completed sync tool id $tool->id course id $tool->courseid users=$user_count sent=$send_count errors=$error_count" );
+		}
+	}
 
 }
 // Check if we requested this by URL or via the sync grades report.
-if ($toolid & !empty($sesskey)) {
-    $link = new moodle_url('/local/ltiprovider/syncreport.php', array('id' => $toolid));
+if ( $toolid & ! empty( $sesskey ) ) {
+	$link = new moodle_url( '/local/ltiprovider/syncreport.php', array( 'id' => $toolid ) );
 
-    $PAGE->set_context($coursecontext);
-    $PAGE->set_url($link);
-    notice(implode("<br />", $log), $link);
+	$PAGE->set_context( $coursecontext );
+	$PAGE->set_url( $link );
+	notice( implode( "<br />", $log ), $link );
 } else {
-    @header('Content-Type: text/plain; charset=utf-8');
-    echo implode("\n", $log);
+	@header( 'Content-Type: text/plain; charset=utf-8' );
+	echo implode( "\n", $log );
 }
 
