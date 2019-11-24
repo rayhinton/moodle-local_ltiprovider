@@ -106,6 +106,8 @@ if ( $selected_users && strlen( $user_force_grade ) == 0 ) {
 
 			$coursecontext = context_course::instance( $tool->courseid );
 			$PAGE->set_context( $coursecontext );
+			$link = new moodle_url( '/local/ltiprovider/syncreport.php', array( 'id' => $toolid ) );
+			$PAGE->set_url( $link );
 			$users = $DB->get_records_select( 'local_ltiprovider_user', $select_user, $params_user );
 			$log  = array_merge( $log, local_ltiprovier_do_grades_sync( $tool, $users, time(), true ) );
 
@@ -122,7 +124,7 @@ if ( $toolid & ! empty( $sesskey ) ) {
 	$PAGE->set_url( $link );
 	notice( implode( "<br />", $log ), $link );
 } else {
-	@header( 'Content-Type: text/plain; charset=utf-8' );
-	echo implode( "\n", $log );
+	// @header( 'Content-Type: text/plain; charset=utf-8' );
+	notice( implode( "<br />", $log ) );
 }
 
