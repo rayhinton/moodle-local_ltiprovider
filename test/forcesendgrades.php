@@ -104,8 +104,10 @@ if ( $selected_users && strlen( $user_force_grade ) == 0 ) {
 				$params_user += $params_in;
 			}
 
+			$coursecontext = context_course::instance( $tool->courseid );
+			$PAGE->set_context( $coursecontext );
 			$users = $DB->get_records_select( 'local_ltiprovider_user', $select_user, $params_user );
-			$log  = array_merge( $log, local_ltiprovier_do_grades_sync( $tool, $users, time() ) );
+			$log  = array_merge( $log, local_ltiprovier_do_grades_sync( $tool, $users, time(), true ) );
 
 			$log[] = s( " Completed sync tool id $tool->id course id $tool->courseid users=$user_count sent=$send_count errors=$error_count" );
 		}

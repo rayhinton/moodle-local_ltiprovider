@@ -26,7 +26,7 @@ class grades_sync extends \core\task\scheduled_task {
 			array( 0, 1 ) ) ) {
 			foreach ( $tools as $tool ) {
 				$users = $DB->get_records( 'local_ltiprovider_user', array( 'toolid' => $tool->id ) );
-				$logs = local_ltiprovier_do_grades_sync( $tool, $users, $timenow );
+				$logs = local_ltiprovier_do_grades_sync( $tool, $users, $timenow, false );
 				foreach ( $logs as $log ) {
 					mtrace( $log );
 				}

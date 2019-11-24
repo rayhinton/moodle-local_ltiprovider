@@ -1092,7 +1092,7 @@ function local_ltiprovider_membership_service_update_userphotos( $userphotos ) {
 	mtrace( "$counter profile images updated" );
 }
 
-function local_ltiprovier_do_grades_sync( $tool, $users, $timenow ) {
+function local_ltiprovier_do_grades_sync( $tool, $users, $timenow, $force_send = false ) {
 	$log = array();
 	global $DB;
 	$log[] = " Starting sync tool for grades id $tool->id course id $tool->courseid";
@@ -1127,7 +1127,7 @@ function local_ltiprovier_do_grades_sync( $tool, $users, $timenow ) {
 				continue;
 			}
 
-			if ( $user->lastsync > $tool->lastsync ) {
+			if ( !$force_send && $user->lastsync > $tool->lastsync ) {
 				$log[] = "   Skipping user {$user->id} due to recent sync";
 				continue;
 			}
