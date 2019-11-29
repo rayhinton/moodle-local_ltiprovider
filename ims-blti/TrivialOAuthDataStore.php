@@ -2,6 +2,7 @@
 
 namespace moodle\local\ltiprovider;
 
+require_once(__DIR__."/OAuth.php");
 /**
  * A Trivial memory-based store - no support for tokens
  */
