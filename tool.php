@@ -506,7 +506,20 @@ if ($context->valid) {
         }
     }
 
-    // Override some settings.
+	if ( isset( $context->info['custom_theme'] ) ) {
+		$custom_theme = clean_param($context->info['custom_theme'], PARAM_PLUGIN);
+		if (!empty($custom_theme) &&
+			(file_exists("$CFG->dirroot/theme/$custom_theme/config.php")
+			||
+			 (!empty($CFG->themedir) and file_exists("$CFG->themedir/$custom_theme/config.php"))
+			)) {
+
+				$SESSION->theme = $context->info['custom_theme'];
+			}
+	}
+
+
+	// Override some settings.
     if ($custom_force_navigation = $context->info['custom_force_navigation']) {
         $tool->forcenavigation = 1;
     }
