@@ -509,7 +509,7 @@ if ($context->valid) {
 	if ( isset( $context->info['custom_theme'] ) ) {
 		$custom_theme = clean_param($context->info['custom_theme'], PARAM_PLUGIN);
 		if (!empty($custom_theme) &&
-			(file_exists("$CFG->dirroot/theme/$custom_theme/config.php")
+			(file_exists("$CFG->dirroot/theme/$custom_theme/version.php")
 			||
 			 (!empty($CFG->themedir) and file_exists("$CFG->themedir/$custom_theme/version.php"))
 			)) {
