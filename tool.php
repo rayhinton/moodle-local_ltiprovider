@@ -511,7 +511,7 @@ if ($context->valid) {
 		if (!empty($custom_theme) &&
 			(file_exists("$CFG->dirroot/theme/$custom_theme/config.php")
 			||
-			 (!empty($CFG->themedir) and file_exists("$CFG->themedir/$custom_theme/config.php"))
+			 (!empty($CFG->themedir) and file_exists("$CFG->themedir/$custom_theme/version.php"))
 			)) {
 
 				$SESSION->theme = $context->info['custom_theme'];
