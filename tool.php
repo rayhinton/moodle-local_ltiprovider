@@ -544,7 +544,7 @@ if ($context->valid) {
 
     $SESSION->ltiprovider = $tool;
 
-    if (!$USER || $USER->username!=$user->username) {
+    if (!$USER || !isset($USER->username) || $USER->username != $user->username) {
         complete_user_login($user);
 
         // Trigger login event.
