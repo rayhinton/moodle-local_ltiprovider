@@ -38,8 +38,8 @@ use moodle\local\ltiprovider as ltiprovider;
  */
 function local_ltiprovider_extend_settings_navigation(settings_navigation $nav, $context) {
     if (
-    ($context->contextlevel == CONTEXT_COURSE || $context->contextlevel == CONTEXT_MODULE)
-    and ($branch = $nav->get('courseadmin'))
+        ($context->contextlevel == CONTEXT_COURSE || $context->contextlevel == CONTEXT_MODULE)
+        and ($branch = $nav->get('courseadmin'))
         and has_capability('local/ltiprovider:view', $context)) {
         $course_id = 0;
         if ($context->contextlevel == CONTEXT_COURSE) {
@@ -106,7 +106,7 @@ function local_ltiprovider_extend_navigation ($nav) {
             $PAGE->requires->css(new moodle_url('/local/ltiprovider/styles.php', array('id' => $SESSION->ltiprovider->id)));
         } elseif (isset($SESSION->ltiprovider) && isset($SESSION->ltiprovider->id)) {
             $url = new moodle_url('/local/ltiprovider/styles.js.php',
-                                    array('id' => $SESSION->ltiprovider->id, 'rand' => rand(0, 1000)));
+                array('id' => $SESSION->ltiprovider->id, 'rand' => rand(0, 1000)));
             $PAGE->requires->js($url);
         }
 
@@ -242,7 +242,7 @@ function local_ltiprovider_check_missing_course($tool) {
  * @return void
  */
 function local_ltiprovider_cron() {
-	/** MOVED TO SCHEDULED TASKS **/
+    /** MOVED TO SCHEDULED TASKS **/
 }
 
 /**
@@ -250,14 +250,15 @@ function local_ltiprovider_cron() {
  *
  * @param  string $hookname The hookname (function without franken style prefix)
  * @param  object $data     Object containing data to be used by the hook function
- * @return bool             Allways false
+ * @return bool             True or false if call is successfully
  */
 function local_ltiprovider_call_hook($hookname, $data) {
     $plugins = get_plugin_list_with_function('ltiproviderextension', $hookname);
+    $r = true;
     if (!empty($plugins)) {
         foreach ($plugins as $plugin) {
-            call_user_func($plugin, $data);
+            $r = call_user_func($plugin, $data) && $r;
         }
     }
-    return false;
+    return $r;
 }

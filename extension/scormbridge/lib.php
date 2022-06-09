@@ -48,4 +48,5 @@ function ltiproviderextension_scormbridge_navigation($nav) {
             }
         }
     }
+    return true;
 }
